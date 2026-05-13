@@ -1,200 +1,136 @@
 import os
-import json
 import requests
-
 from dotenv import load_dotenv
-
 
 load_dotenv()
 
-
 class GitHubClient:
-
     BASE_URL = "https://api.github.com"
 
     def __init__(self, owner: str, repo: str):
-
         self.owner = owner
         self.repo = repo
-
         self.token = os.getenv("GITHUB_TOKEN")
 
         if not self.token:
-            raise ValueError("GitHub token not found")
+            raise ValueError("GitHub token not found in .env")
 
         self.session = requests.Session()
-
         self.session.headers.update({
             "Authorization": f"Bearer {self.token}",
             "Accept": "application/vnd.github+json"
         })
 
-    def save_json(self, data, filename):
-
-        os.makedirs("data", exist_ok=True)
-
-        with open(f"data/{filename}", "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-
-    def get_commits(self, max_commits=500):
-
-        all_commits = []
-
+    def get_commits(self, max_commits: int = 500) -> list[dict]:
+        commits = []
         page = 1
-        per_page = 100
 
-        while len(all_commits) < max_commits:
-
+        while len(commits) < max_commits:
             endpoint = f"{self.BASE_URL}/repos/{self.owner}/{self.repo}/commits"
-
-            response = self.session.get(
-                endpoint,
-                params={
-                    "per_page": per_page,
-                    "page": page
-                }
-            )
+            response = self.session.get(endpoint, params={
+                "per_page": 100,   # max allowed per page
+                "page": page
+            })
 
             if response.status_code != 200:
-                raise Exception(response.text)
+                raise Exception(f"GitHub API Error: {response.status_code} - {response.text}")
 
-            commits = response.json()
+            batch = response.json()
 
-            if not commits:
+            if not batch:           # empty page = no more commits
                 break
 
-            for commit in commits:
+            for raw in batch:
+                commits.append({
+                    "sha":     raw["sha"],
+                    "message": raw["commit"]["message"],
+                    "author":  raw["commit"]["author"]["name"],
+                    "date":    raw["commit"]["author"]["date"],
+                    "url":     raw["html_url"]
+                })
 
-                cleaned_commit = {
-                    "sha": commit.get("sha"),
-                    "message": commit.get("commit", {}).get("message"),
-                    "author": commit.get("commit", {}).get("author", {}).get("name"),
-                    "date": commit.get("commit", {}).get("author", {}).get("date"),
-                    "url": commit.get("html_url")
-                }
-
-                all_commits.append(cleaned_commit)
-
-                if len(all_commits) >= max_commits:
+                if len(commits) >= max_commits:
                     break
 
             page += 1
 
-        self.save_json(all_commits, "commits.json")
+        return commits
 
-        return all_commits
-
-    def get_issues(self, max_issues=200):
-
-        all_issues = []
-
+    def get_issues(self, max_issues: int = 500) -> list[dict]:
+        issues = []
         page = 1
-        per_page = 100
 
-        while len(all_issues) < max_issues:
-
+        while len(issues) < max_issues:
             endpoint = f"{self.BASE_URL}/repos/{self.owner}/{self.repo}/issues"
-
-            response = self.session.get(
-                endpoint,
-                params={
-                    "state": "all",
-                    "per_page": per_page,
-                    "page": page
-                }
-            )
+            response = self.session.get(endpoint, params={
+                "state": "all",    # open + closed
+                "per_page": 100,
+                "page": page
+            })
 
             if response.status_code != 200:
-                raise Exception(response.text)
+                raise Exception(f"GitHub API Error: {response.status_code} - {response.text}")
 
-            issues = response.json()
+            batch = response.json()
 
-            if not issues:
+            if not batch:
                 break
 
-            for issue in issues:
-
-                # Skip pull requests
-                if "pull_request" in issue:
+            for raw in batch:
+                # GitHub issues API also returns pull requests — skip them
+                if "pull_request" in raw:
                     continue
 
-                cleaned_issue = {
-                    "number": issue.get("number"),
-                    "title": issue.get("title"),
-                    "body": issue.get("body"),
-                    "state": issue.get("state"),
-                    "labels": [
-                        label.get("name")
-                        for label in issue.get("labels", [])
-                    ],
-                    "created_at": issue.get("created_at"),
-                    "url": issue.get("html_url")
-                }
+                issues.append({
+                    "id":     raw["number"],
+                    "title":  raw["title"],
+                    "body":   raw["body"] or "",
+                    "state":  raw["state"],
+                    "labels": [l["name"] for l in raw["labels"]],
+                    "date":   raw["created_at"],
+                    "url":    raw["html_url"]
+                })
 
-                all_issues.append(cleaned_issue)
-
-                if len(all_issues) >= max_issues:
+                if len(issues) >= max_issues:
                     break
 
             page += 1
 
-        self.save_json(all_issues, "issues.json")
+        return issues
 
-        return all_issues
+    def get_code_files(self, extensions: list[str] = None) -> list[dict]:
+        if extensions is None:
+            extensions = [".py", ".js", ".ts", ".go", ".java", ".cpp", ".c", ".md"]
 
-    def get_code_files(self, extensions=[".py", ".md"]):
+        # Fetch the full file tree recursively in one API call
+        endpoint = f"{self.BASE_URL}/repos/{self.owner}/{self.repo}/git/trees/HEAD"
+        response = self.session.get(endpoint, params={"recursive": "1"})
 
-        collected_files = []
+        if response.status_code != 200:
+            raise Exception(f"GitHub API Error: {response.status_code} - {response.text}")
 
-        def traverse(path=""):
+        tree = response.json().get("tree", [])
 
-            endpoint = f"{self.BASE_URL}/repos/{self.owner}/{self.repo}/contents/{path}"
+        files = []
+        for item in tree:
+            # Only blobs (files), not trees (directories)
+            if item["type"] != "blob":
+                continue
 
-            response = self.session.get(endpoint)
+            path = item["path"]
+            if not any(path.endswith(ext) for ext in extensions):
+                continue
 
-            if response.status_code != 200:
-                return
+            # Fetch raw file content
+            raw_url = f"https://raw.githubusercontent.com/{self.owner}/{self.repo}/HEAD/{path}"
+            file_response = self.session.get(raw_url)
 
-            items = response.json()
+            if file_response.status_code != 200:
+                continue
 
-            if not isinstance(items, list):
-                return
+            files.append({
+                "path":    path,
+                "content": file_response.text
+            })
 
-            for item in items:
-
-                if item["type"] == "dir":
-                    traverse(item["path"])
-
-                elif item["type"] == "file":
-
-                    file_path = item.get("path", "")
-                    file_size = item.get("size", 0)
-
-                    if not any(file_path.endswith(ext) for ext in extensions):
-                        continue
-
-                    if file_size > 50000:
-                        continue
-
-                    download_url = item.get("download_url")
-
-                    if not download_url:
-                        continue
-
-                    file_response = requests.get(download_url)
-
-                    if file_response.status_code != 200:
-                        continue
-
-                    collected_files.append({
-                        "path": file_path,
-                        "content": file_response.text,
-                        "size": file_size,
-                        "url": item.get("html_url")
-                    })
-
-        traverse()
-
-        self.save_json(collected_files, "code_files.json")
-
-        return collected_files
+        return files
