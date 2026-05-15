@@ -134,3 +134,12 @@ class GitHubClient:
             })
 
         return files
+    
+    def get_readme(self) -> str:
+        """Fetch the README content directly."""
+        for filename in ["README.md", "readme.md", "README.rst", "README.txt"]:
+            raw_url = f"https://raw.githubusercontent.com/{self.owner}/{self.repo}/HEAD/{filename}"
+            response = self.session.get(raw_url)
+            if response.status_code == 200:
+                return response.text
+        return ""

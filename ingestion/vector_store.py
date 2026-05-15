@@ -1,5 +1,6 @@
 import chromadb
 from sentence_transformers import SentenceTransformer
+import json, os
 
 # Embedding model
 MODEL = SentenceTransformer("all-MiniLM-L6-v2")
@@ -16,6 +17,7 @@ def _get_or_create_collection(name: str):
     )
 
 
+
 def store_chunks(chunks: list[dict], collection_name: str, batch_size: int = 100):
     """
     Embed all chunks and store them in ChromaDB.
@@ -29,6 +31,8 @@ def store_chunks(chunks: list[dict], collection_name: str, batch_size: int = 100
     if not chunks:
         print(f"No chunks to store in '{collection_name}'")
         return
+
+    clear_collection(collection_name)
 
     collection = _get_or_create_collection(collection_name)
 
@@ -84,3 +88,26 @@ def query_collection(collection_name: str, query: str, n_results: int = 5) -> li
         })
 
     return output
+
+def clear_collection(name: str):
+    """Delete a collection entirely so we can start fresh."""
+    try:
+        CLIENT.delete_collection(name)
+        print(f"Cleared collection: '{name}'")
+    except Exception:
+        pass
+
+
+CONTEXT_FILE = "project_context.json"
+
+def save_project_context(context: dict):
+    """Save project summary to disk so it persists between runs."""
+    with open(CONTEXT_FILE, "w") as f:
+        json.dump(context, f, indent=2)
+
+def load_project_context() -> dict:
+    """Load saved project summary. Returns empty dict if not found."""
+    if not os.path.exists(CONTEXT_FILE):
+        return {}
+    with open(CONTEXT_FILE, "r") as f:
+        return json.load(f)

@@ -3,12 +3,14 @@ venv/
 
 .env
 
-data/
-
 __pycache__/
 *.pyc
 
 .vscode/
 .idea/
 .DS_Store
+
 chroma_db/
+chroma.sqlite3
+
+project_context.json
