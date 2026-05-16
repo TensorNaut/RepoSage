@@ -111,3 +111,39 @@ def load_project_context() -> dict:
         return {}
     with open(CONTEXT_FILE, "r") as f:
         return json.load(f)
+    
+def query_by_file(file_path: str, collection_name: str = "code") -> list[dict]:
+    """
+    Retrieve all chunks from a specific file.
+    Uses Python-side filtering since ChromaDB's $contains
+    is unreliable across versions.
+    """
+    collection = _get_or_create_collection(collection_name)
+
+    # Get everything, filter in Python — reliable across all ChromaDB versions
+    results = collection.get(include=["documents", "metadatas"])
+
+    output = []
+    for doc, meta in zip(results["documents"], results["metadatas"]):
+        stored_path = meta.get("path", "").lower()
+        # Match if query file appears anywhere in the stored path
+        # e.g. "generator.py" matches "llm/generator.py"
+        if file_path.lower() in stored_path:
+            output.append({
+                "text":     doc,
+                "metadata": meta,
+                "score":    1.0
+            })
+
+    return output
+
+
+def list_indexed_files(collection_name: str = "code") -> list[str]:
+    """List all unique file paths stored in a collection."""
+    collection = _get_or_create_collection(collection_name)
+    results = collection.get(include=["metadatas"])
+    paths = sorted(set(
+        m.get("path", "unknown")
+        for m in results["metadatas"]
+    ))
+    return paths

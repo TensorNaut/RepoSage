@@ -193,7 +193,7 @@ python ask.py
 
 ---
 
-## 🗺️ Roadmap
+## future work
 
 - [ ] Support for private repositories
 - [ ] Multi-repo indexing (compare two repos)
