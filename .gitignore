@@ -12,5 +12,6 @@ __pycache__/
 
 chroma_db/
 chroma.sqlite3
+chroma_db/chroma.sqlite3
 
 project_context.json
