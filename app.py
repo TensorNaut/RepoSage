@@ -227,7 +227,7 @@ except FileNotFoundError:
 
 # ── Header ────────────────────────────────────────────────────────────────────
 now = datetime.now().strftime("%d/%m/%Y %H:%M")
-logo_img = f'<img src="data:image/png;base64,{logo_b64}" style="height:120px;margin-right:24px;filter:drop-shadow(0 0 10px #00ff41) drop-shadow(0 0 20px #00ff4133);">' if logo_b64 else ""
+logo_img = f'<img src="data:image/png;base64,{logo_b64}" style="height:100px;margin-right:24px;filter:drop-shadow(0 0 10px #00ff41) drop-shadow(0 0 20px #00ff4133);">' if logo_b64 else ""
 
 st.markdown(f"""
 <div style="background:#0a0800;border:1px solid #ffb000;padding:18px 28px;
@@ -237,7 +237,7 @@ st.markdown(f"""
     <div style="display:flex;align-items:center;">
         {logo_img}
         <div>
-            <div style="color:#ffb000;font-size:45px;letter-spacing:5px;font-weight:bold;
+            <div style="color:#ffb000;font-size:40px;letter-spacing:5px;font-weight:bold;
                         font-family:'Press Start 2P',monospace;
                         animation:amber-pulse 3s ease-in-out infinite;
                         text-shadow:0 0 8px #ffb000, 0 0 18px #ffb00088, 0 0 30px #ffb00044;
@@ -250,7 +250,7 @@ st.markdown(f"""
             </div>
         </div>
     </div>
-    <div style="text-align:right;font-size:14px;line-height:2;font-family:'Share Tech Mono',monospace;">
+    <div style="text-align:right;font-size:12px;line-height:2;font-family:'Share Tech Mono',monospace;">
         <div style="color:#ffb000;text-shadow:0 0 4px #ffb00066;">v1.0.0-alpha</div>
         <div style="color:#7a5500;">@TensorNaut/RepoSage</div>
         <div style="color:#00ff41;text-shadow:0 0 6px #00ff4166;animation:amber-pulse 4s ease-in-out infinite;">[ ● SYSTEM ONLINE ]</div>
@@ -262,7 +262,7 @@ st.markdown(f"""
 left, center, right = st.columns([1.3, 3.5, 1.2])
 
 # ══════════════════════════════════════════════════════════════════════════════
-# LEFT COLUMN — Repo input + system status (file tree removed)
+# LEFT COLUMN — Repo input + system status
 # ══════════════════════════════════════════════════════════════════════════════
 with left:
     st.markdown(panel(
@@ -368,7 +368,7 @@ with center:
     """, unsafe_allow_html=True)
 
     # Scrollable chat container with fixed height
-    chat_container = st.container(height=520)
+    chat_container = st.container(height=500)
 
     with chat_container:
         if not st.session_state.messages:
@@ -444,7 +444,6 @@ with center:
 
     # Status bar
     routes_str = "+".join(st.session_state.last_route) if st.session_state.last_route else "---"
-    score_str  = f"{st.session_state.last_score:.2f}" if st.session_state.last_score else "---"
     repo_str   = st.session_state.repo_name or "NO REPO INDEXED"
 
     st.markdown(f"""
@@ -455,7 +454,7 @@ with center:
         <span>REPO: <span style="color:#ffb000;">{repo_str}</span></span>
         <span>COLS: <span style="color:#e8e8e8;">{routes_str}</span></span>
         <span>MODEL: <span style="color:#e8e8e8;">llama-3.3-70b</span></span>
-        <span>SCORE: <span style="color:#00ff41;">{score_str}</span></span>
+        <span>STATUS: <span style="color:#00ff41;">{"Online"}</span></span>
     </div>
     """, unsafe_allow_html=True)
 
