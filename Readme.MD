@@ -2,18 +2,27 @@
 
 > **Ask anything about any GitHub repository — code, commits, or issues — in plain English.**
 
-RepoSage is an AI-powered developer assistant that lets you point it at any public GitHub repository and have a natural conversation about it. It understands the codebase, commit history, and issue tracker simultaneously.
+![Python](https://img.shields.io/badge/Python-3.10+-3776ab?style=flat-square&logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-UI-ff4b4b?style=flat-square&logo=streamlit&logoColor=white)
+![Groq](https://img.shields.io/badge/Groq-Llama_3.3_70B-f55036?style=flat-square)
+![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector_Store-6d28d9?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-00c853?style=flat-square)
+
+RepoSage is an AI-powered developer assistant that lets you point it at any public GitHub repository and have a natural conversation about it. It understands the codebase, commit history, and issue tracker simultaneously — with no hallucination and full source citations.
 
 ---
 
 ## What Can You Ask?
 
-- *"How does authentication work in this codebase?"*
-- *"When was the last memory leak fixed and who fixed it?"*
-- *"Are there any open issues related to rate limiting?"*
-- *"What files does the payment module depend on?"*
-- *"Walk me through the data pipeline of this project."*
-- *"Are there any potential bugs in the ingestion logic?"*
+```
+"How does authentication work in this codebase?"
+"When was the last memory leak fixed and who fixed it?"
+"Are there any open issues related to rate limiting?"
+"What files does the payment module depend on?"
+"Walk me through the data pipeline of this project."
+"Examine app.py and find potential bugs."
+"Tell me about the architecture of this project."
+```
 
 ---
 
@@ -56,12 +65,13 @@ context.json      └──────────────────┬�
 
 - **Multi-source RAG** — searches code, commits, and issues simultaneously
 - **AST-based code chunking** — Python functions/classes extracted precisely using Abstract Syntax Trees; regex fallback for JS, TS, Go, Rust, Java, C/C++
+- **File-aware retrieval** — ask about a specific file (e.g. "examine app.py") and all its chunks are fetched via metadata filter, bypassing semantic search
 - **Smart query routing** — automatically decides which data sources to search based on question intent
 - **Project-level context injection** — README is summarized by LLM at ingest time and prepended to every query, so the model always understands what the project is
-- **Hallucination prevention** — strict score filtering and hard stops before LLM call when no relevant context exists
-- **General knowledge hybrid** — detects general tech questions and answers from training data with a clear label
+- **Hallucination prevention** — strict score filtering (≥ 0.15) and hard stop before LLM call when no relevant context exists
+- **General knowledge hybrid** — detects general tech questions and answers from training data with a clear `⚠️ General Knowledge` label
 - **Persistent vector store** — ChromaDB stores embeddings locally; no re-indexing needed between sessions
-- **Interactive Streamlit UI** — sidebar shows live project summary, tech stack, and key features
+- **Retro TUI** — developer-focused terminal-style UI with live system status, file tree, and query context panel
 
 ---
 
@@ -82,7 +92,7 @@ context.json      └──────────────────┬�
 
 ```
 RepoSage/
-├── app.py                    # Streamlit web UI
+├── app.py                    # Streamlit web UI (retro TUI style)
 ├── ingest.py                 # CLI ingestion script (run once per repo)
 ├── ask.py                    # CLI query loop
 │
@@ -90,8 +100,8 @@ RepoSage/
 │   ├── __init__.py
 │   ├── github_client.py      # GitHub API — fetches commits, issues, code, README
 │   ├── chunker.py            # AST + regex + line-based chunking
-│   ├── vector_store.py       # ChromaDB read/write operations
-│   └── summarizer.py         # LLM-powered README → project summary
+│   ├── vector_store.py       # ChromaDB read/write + file-aware metadata query
+│   └── summarizer.py         # LLM-powered README → structured project summary
 │
 ├── rag/
 │   ├── __init__.py
@@ -110,7 +120,7 @@ RepoSage/
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/your-username/RepoSage.git
+git clone https://github.com/TensorNaut/RepoSage.git
 cd RepoSage
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
@@ -127,7 +137,7 @@ GROQ_API_KEY=your_groq_api_key
 ```
 
 **Getting your keys:**
-- **GitHub PAT:** GitHub → Settings → Developer Settings → Personal Access Tokens → Generate (select `repo` scope)
+- **GitHub PAT:** GitHub → Settings → Developer Settings → Personal Access Tokens → Generate (`repo` scope)
 - **Groq API Key:** [console.groq.com](https://console.groq.com) → API Keys → Create
 
 ### 3. Run the Streamlit UI
@@ -136,20 +146,18 @@ GROQ_API_KEY=your_groq_api_key
 streamlit run app.py
 ```
 
-Enter any public GitHub repo URL in the sidebar, click **Index Repository**, and start chatting.
+Enter any public GitHub repo URL, click **INDEX REPO**, and start chatting.
 
 ---
 
 ## CLI Usage
 
-If you prefer the terminal:
-
 ```bash
-# Step 1 — ingest a repo (run once)
+# Step 1 — ingest a repo (run once per repo)
 python ingest.py
 # Enter GitHub repo URL: https://github.com/tiangolo/fastapi
 
-# Step 2 — query it
+# Step 2 — query it interactively
 python ask.py
 # You: How does authentication work?
 # You: When was the last dependency update?
@@ -162,24 +170,25 @@ python ask.py
 
 ### Ingestion Pipeline
 
-1. **README → Project Summary** — The README is fetched and sent to Groq LLM, which extracts a structured summary (name, description, tech stack, architecture, key features). This is saved to `project_context.json`.
+1. **README → Project Summary** — README is fetched and sent to Groq LLM, which extracts a structured JSON summary (name, description, tech stack, architecture, key features). Saved to `project_context.json`.
 
-2. **Code Files** — All source files are fetched via the GitHub Trees API in one call. Python files are chunked at the function/class level using Python's `ast` module. JS/TS/Go/Rust/Java files use regex pattern matching. Everything else uses sliding window line chunking with overlap.
+2. **Code Files** — All source files fetched via GitHub Trees API in a single call. Python files chunked at function/class level using Python's `ast` module. JS/TS/Go/Rust/Java use regex pattern matching. Everything else uses sliding window line chunking with overlap.
 
-3. **Commits** — Each commit is formatted as a readable sentence with author, date, and message. Paginated up to your chosen limit.
+3. **Commits** — Each commit formatted as a readable sentence with author, date, and message. Paginated up to your chosen limit.
 
-4. **Issues** — Title + body combined into a single chunk with state and label metadata. Pull requests are filtered out.
+4. **Issues** — Title + body combined into one chunk with state and label metadata. Pull requests are filtered out automatically.
 
-5. **Embedding + Storage** — All chunks are embedded using `all-MiniLM-L6-v2` and stored in ChromaDB across three separate collections: `code`, `commits`, `issues`.
+5. **Embedding + Storage** — All chunks embedded using `all-MiniLM-L6-v2` and stored in ChromaDB across three separate named collections: `code`, `commits`, `issues`.
 
 ### Query Pipeline
 
-1. **Query Router** — Keywords in the question determine which collections to search. Broad questions search all three.
+1. **Query Router** — Keywords in the question determine which collections to search. Broad overview questions search all three.
 
-2. **Context Assembly** — Project summary is always prepended. Retrieved chunks are filtered by relevance score (≥ 0.15) and labeled with their source.
+2. **File Detection** — If the question mentions a filename (e.g. `app.py`, `llm/generator.py`), all chunks from that file are fetched via ChromaDB metadata filter rather than semantic search.
 
-3. **LLM Call** — Groq (Llama 3.3 70B) receives the assembled context and answers strictly from it. If no relevant context passes the threshold, the LLM is never called.
+3. **Context Assembly** — Project summary always prepended. Retrieved chunks filtered by relevance score (≥ 0.15) and labeled with source file, commit author/date, or issue number.
 
+4. **LLM Call** — Groq (Llama 3.3 70B) receives assembled context and answers strictly from it. If no relevant context passes the threshold, the LLM is never called — returning a direct "not enough information" message instead.
 
 ---
 
@@ -187,20 +196,33 @@ python ask.py
 
 - Only **public** GitHub repositories are supported
 - GitHub API rate limit: 5,000 requests/hour with a PAT
-- Code indexing is limited to: `.py`, `.js`, `.ts`, `.jsx`, `.tsx`, `.go`, `.java`, `.cpp`, `.c`, `.md`
+- Code indexing covers: `.py`, `.js`, `.ts`, `.jsx`, `.tsx`, `.go`, `.java`, `.cpp`, `.c`, `.md`
 - Groq free tier has rate limits on requests per minute
-- ChromaDB stores data locally — indexing a new repo overwrites the previous one
+- ChromaDB stores locally — indexing a new repo clears the previous one
+- AST chunking works best on well-structured code; heavily procedural scripts may produce fewer chunks
 
 ---
 
-## future work
+## Future Work
 
-- [ ] Support for private repositories
-- [ ] Multi-repo indexing (compare two repos)
+- [ ] Support for private repositories (OAuth flow)
+- [ ] Multi-repo indexing and cross-repo comparison
 - [ ] Deployment on Streamlit Community Cloud
-- [ ] CodeBERT / StarCoder embeddings for better code understanding
+- [ ] CodeBERT / StarCoder embeddings for better code semantic understanding
 - [ ] Conversation memory across sessions
-- [ ] Export Q&A sessions as markdown
+- [ ] Export Q&A sessions as markdown reports
+
+---
+
+## Contributing
+
+Pull requests are welcome. For major changes please open an issue first to discuss what you would like to change.
+
+1. Fork the repo
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit your changes: `git commit -m 'Add your feature'`
+4. Push to branch: `git push origin feature/your-feature`
+5. Open a pull request
 
 ---
 
@@ -210,10 +232,11 @@ Built with:
 - [ChromaDB](https://www.trychroma.com/) — vector database
 - [sentence-transformers](https://www.sbert.net/) — local embeddings
 - [Groq](https://groq.com/) — ultra-fast LLM inference
-- [Streamlit](https://streamlit.io/) — web UI
+- [Streamlit](https://streamlit.io/) — web UI framework
+- [GitHub REST API](https://docs.github.com/en/rest) — data source
 
 ---
 
-## 📄 License
+## License
 
 MIT License — see [LICENSE](LICENSE) for details.
