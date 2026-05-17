@@ -320,18 +320,18 @@ with left:
                 st.session_state.messages      = []
 
                 prog.empty()
-                stati.markdown(f'<div style="color:#00ff41;font-size:12px;border:1px solid #00ff41;padding:4px;">INDEXED: {owner}/{repo}<br>{len(cc)} cmts | {len(ic)} issu | {len(fc)} code</div>', unsafe_allow_html=True)
+                stati.markdown(f'<div style="color:#00ff41;font-size:12px;border:1px solid #00ff41;padding:4px;">INDEXED: {owner}/{repo}<br>{len(cc)} commits | {len(ic)} issues | {len(fc)} code</div>', unsafe_allow_html=True)
 
             except Exception as e:
                 st.session_state.sys_status["indexer"] = "ERROR"
                 st.markdown(f'<div style="color:#ff4444;font-size:12px;border:1px solid #ff4444;padding:4px;margin-top:4px;">ERROR: {str(e)}</div>', unsafe_allow_html=True)
 
-    # Metrics
-    if st.session_state.repo_name:
-        m1, m2, m3 = st.columns(3)
-        m1.metric("CMTS", max_commits)
-        m2.metric("ISSU", max_issues)
-        m3.metric("FILE", len(st.session_state.indexed_files))
+    # # Metrics
+    # if st.session_state.repo_name:
+    #     m1, m2, m3 = st.columns(3)
+    #     m1.metric("CMTS", max_commits)
+    #     m2.metric("ISSU", max_issues)
+    #     m3.metric("FILE", len(st.session_state.indexed_files))
 
     # System Status
     ss = st.session_state.sys_status
@@ -351,6 +351,24 @@ with left:
         f'+--------------------+</div>',
         "#1e1e1e"
     ), unsafe_allow_html=True)
+
+    # Last query routing (collections)
+    routes = st.session_state.last_route
+    coll_rows = ""
+    for name_c in [("CODE", "code"), ("COMMITS", "commits"), ("ISSUES", "issues")]:
+        label, key = name_c
+        if key in routes:
+            coll_rows += f'| <span style="color:#00ff41;">{label}&nbsp;[ACTIVE]</span> |<br>'
+        else:
+            coll_rows += f'| <span style="color:#e8e8e8;">{label} [SKIP] &nbsp;</span> |<br>'
+
+    coll_html = ctx_label("LAST QUERY CONTEXT") + f'''
+    <div style="font-size:12px;line-height:1.9;color:#7a5500;">
+    +-- COLLECTIONS ----+<br>
+    {coll_rows}
+    +------------------+
+    </div>'''
+    st.markdown(panel(coll_html, "#1e1e1e"), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CENTER COLUMN — Console + Chat (scrollable chat area)
@@ -377,10 +395,10 @@ with center:
                         line-height:2;background:#030300;margin-bottom:8px;
                         font-family:'Share Tech Mono',monospace;">
                 <span style="color:#ffb000;">+--------------------------------------+</span><br>
-                | REPOSAGE v0.1.0 // Repo Intelligence |<br>
+                | REPOSAGE v1.0.0 // Repo Intelligence |<br>
                 | Index a repo via left panel to begin.|<br>
-                | Ask about  code, commits, or issues. |<br>
-                | File  queries : "examine the main.py"|<br>
+                | Ask about codes, commits, or issues. |<br>
+                | File  queries : "examine the main.py" |<br>
                 <span style="color:#ffb000;">+--------------------------------------+</span>
             </div>
             """, unsafe_allow_html=True)
@@ -515,11 +533,11 @@ with right:
 
         if desc:
             ctx_html += ctx_label("SUMMARY")
-            ctx_html += ctx_val(desc[:200] + ("..." if len(desc) > 200 else ""))
+            ctx_html += ctx_val(desc[:350] + ("..." if len(desc) > 350 else ""))
 
         if purp:
             ctx_html += ctx_label("PURPOSE")
-            ctx_html += ctx_val(purp[:200] + ("..." if len(purp) > 200 else ""))
+            ctx_html += ctx_val(purp[:350] + ("..." if len(purp) > 350 else ""))
 
         ctx_html += divider()
 
@@ -535,24 +553,6 @@ with right:
 
     else:
         ctx_html += '<div style="color:#3a3020;font-size:12px;line-height:2;">No context loaded.<br>Index a repository<br>to populate this panel.</div>'
-
-    # Last query routing
-    ctx_html += ctx_label("LAST QUERY CONTEXT")
-    routes = st.session_state.last_route
-    coll_rows = ""
-    for name_c in [("CODE", "code"), ("COMMITS", "commits"), ("ISSUES", "issues")]:
-        label, key = name_c
-        if key in routes:
-            coll_rows += f'| <span style="color:#00ff41;">{label}&nbsp;[ACTIVE]</span> |<br>'
-        else:
-            coll_rows += f'| <span style="color:#e8e8e8;">{label} [SKIP] &nbsp;</span> |<br>'
-
-    ctx_html += f'''
-    <div style="font-size:12px;line-height:1.9;color:#7a5500;">
-    +-- COLLECTIONS ----+<br>
-    {coll_rows}
-    +------------------+
-    </div>'''
 
     st.markdown(panel(ctx_html, "#1e1e1e"), unsafe_allow_html=True)
 
