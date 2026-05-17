@@ -227,21 +227,21 @@ except FileNotFoundError:
 
 # ── Header ────────────────────────────────────────────────────────────────────
 now = datetime.now().strftime("%d-%m-%Y %H:%M")
-logo_img = f'<img src="data:image/png;base64,{logo_b64}" style="height:100px;margin-right:24px;filter:drop-shadow(0 0 10px #00ff41) drop-shadow(0 0 20px #00ff4133);">' if logo_b64 else ""
+logo_img = f'<img src="data:image/png;base64,{logo_b64}" style="height:75px;margin-right:20px;filter:drop-shadow(0 0 10px #00ff41) drop-shadow(0 0 20px #00ff4133);">' if logo_b64 else ""
 
 st.markdown(f"""
-<div style="background:#0a0800;border:1px solid #ffb000;padding:18px 28px;
+<div style="background:#0a0800;border:1px solid #ffb000;padding:12px 24px;
             margin-bottom:6px;display:flex;justify-content:space-between;
             align-items:center;font-family:'Share Tech Mono',monospace;
             box-shadow:0 0 20px #ffb00033 inset, 0 0 6px #ffb00022;">
     <div style="display:flex;align-items:center;">
         {logo_img}
         <div>
-            <div style="color:#ffb000;font-size:40px;letter-spacing:5px;font-weight:bold;
+            <div style="color:#ffb000;font-size:35px;letter-spacing:5px;font-weight:bold;
                         font-family:'Press Start 2P',monospace;
                         animation:amber-pulse 3s ease-in-out infinite;
                         text-shadow:0 0 8px #ffb000, 0 0 18px #ffb00088, 0 0 30px #ffb00044;
-                        line-height:1.6;">
+                        line-height:1.55;">
                 RepoSage
             </div>
             <div style="color:#7a5500;font-size:12px;letter-spacing:2px;margin-top:6px;
