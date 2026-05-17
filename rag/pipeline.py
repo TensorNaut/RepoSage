@@ -4,10 +4,12 @@ from groq import Groq
 from dotenv import load_dotenv
 from ingestion.vector_store import query_collection, load_project_context, query_by_file
 from ingestion.summarizer import format_summary_for_context
+import streamlit as st
 
 load_dotenv()
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+api_key = os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY", "")
+client = Groq(api_key=api_key)
 
 
 # ── Query Router ──────────────────────────────────────────────────────────────

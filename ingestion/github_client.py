@@ -1,6 +1,7 @@
 import os
 import requests
 from dotenv import load_dotenv
+import streamlit as st
 
 load_dotenv()
 
@@ -10,7 +11,7 @@ class GitHubClient:
     def __init__(self, owner: str, repo: str):
         self.owner = owner
         self.repo = repo
-        self.token = os.getenv("GITHUB_TOKEN")
+        self.token = os.getenv("GITHUB_TOKEN") or st.secrets.get("GITHUB_TOKEN", "")
 
         if not self.token:
             raise ValueError("GitHub token not found in .env")
