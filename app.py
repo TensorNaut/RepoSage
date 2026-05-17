@@ -226,7 +226,7 @@ except FileNotFoundError:
     pass
 
 # ── Header ────────────────────────────────────────────────────────────────────
-now = datetime.now().strftime("%d/%m/%Y %H:%M")
+now = datetime.now().strftime("%d-%m-%Y %H:%M")
 logo_img = f'<img src="data:image/png;base64,{logo_b64}" style="height:100px;margin-right:24px;filter:drop-shadow(0 0 10px #00ff41) drop-shadow(0 0 20px #00ff4133);">' if logo_b64 else ""
 
 st.markdown(f"""
@@ -368,7 +368,7 @@ with center:
     """, unsafe_allow_html=True)
 
     # Scrollable chat container with fixed height
-    chat_container = st.container(height=500)
+    chat_container = st.container(height=480)
 
     with chat_container:
         if not st.session_state.messages:
@@ -379,8 +379,8 @@ with center:
                 <span style="color:#ffb000;">+--------------------------------------+</span><br>
                 | REPOSAGE v0.1.0 // Repo Intelligence |<br>
                 | Index a repo via left panel to begin.|<br>
-                | Ask about code, commits, or issues.   |<br>
-                | File queries: "examine app.py"          |<br>
+                | Ask about  code, commits, or issues. |<br>
+                | File  queries : "examine the main.py"|<br>
                 <span style="color:#ffb000;">+--------------------------------------+</span>
             </div>
             """, unsafe_allow_html=True)
