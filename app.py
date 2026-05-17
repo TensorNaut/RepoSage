@@ -515,11 +515,11 @@ with right:
 
         if desc:
             ctx_html += ctx_label("SUMMARY")
-            ctx_html += ctx_val(desc[:140] + ("..." if len(desc) > 140 else ""))
+            ctx_html += ctx_val(desc[:200] + ("..." if len(desc) > 200 else ""))
 
         if purp:
             ctx_html += ctx_label("PURPOSE")
-            ctx_html += ctx_val(purp[:120] + ("..." if len(purp) > 120 else ""))
+            ctx_html += ctx_val(purp[:200] + ("..." if len(purp) > 200 else ""))
 
         ctx_html += divider()
 
