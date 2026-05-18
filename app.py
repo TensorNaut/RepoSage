@@ -512,7 +512,8 @@ with center:
 # RIGHT COLUMN — Context panel
 # ══════════════════════════════════════════════════════════════════════════════
 with right:
-    project_ctx = load_project_context()
+    project_ctx = load_project_context() if st.session_state.repo_name else {}
+
 
     ctx_html = panel_title("+-- CONTEXT ----------+")
 
